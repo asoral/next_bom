@@ -28,7 +28,7 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"BOM" : "public/js/bom.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -122,13 +122,11 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"BOM": {
+		"before_save": "next_bom.custom_bom.before_save",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -226,4 +224,17 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
+# fixtures = [
+#     {
+#         'doctype':'Custom Field',
+#         'filters':{
+#             'name': ['in', ('BOM Item-custom_is_custom_calculation','BOM Item-custom_formula','BOM Item-custom_reference_row_','BOM Item-custom_type')]   
+#         }
+#     },
+# #     {
+# #         'doctype':'Property Setter',
+# #         'filters': {
+# #             'name':['in',('Asset-asset_name-allow_on_submit','Asset Repair-asset-set_only_once')]
+# #         }
+# #     }
+# ]

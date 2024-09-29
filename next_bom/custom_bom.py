@@ -18,6 +18,9 @@ def before_save(self,method):
         elif i.custom_type == 'On Previous Row Qty':
             prev_row = self.items[int(i.custom_reference_row_) - 1]
             i.qty = calculate_formula(i.custom_formula,self,prev_row)
+            amount = flt(i.rate) * flt(i.qty)
+            i.amount = amount
+            i.base_amount = amount
 def throw_error_message(row, error, title, description=None):
 	data = frappe._dict(
 		{

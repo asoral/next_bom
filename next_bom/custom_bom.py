@@ -21,6 +21,24 @@ def before_save(self,method):
             amount = flt(i.rate) * flt(i.qty)
             i.amount = amount
             i.base_amount = amount
+    
+    if self.scrap_items:
+        for i in self.scrap_items:
+            if i.custom_type == 'Actual' and i.custom_formula:
+                i.stock_qty = calculate_formula(i.custom_formula,self,i)
+            elif i.custom_type == 'On Previous Row Qty':
+                prev_row = self.scrap_items[int(i.custom_reference_row_) - 1]
+                i.stock_qty = calculate_formula(i.custom_formula,self,prev_row)
+                amount = flt(i.rate) * flt(i.stock_qty)
+                i.amount = amount
+                i.base_amount = amount
+
+
+
+    
+
+
+    
 def throw_error_message(row, error, title, description=None):
 	data = frappe._dict(
 		{

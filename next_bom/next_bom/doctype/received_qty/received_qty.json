@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-22 13:04:32.944536",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "transferred_from_job_card_id",
+  "date_and_time",
+  "received_qty"
+ ],
+ "fields": [
+  {
+   "fieldname": "transferred_from_job_card_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Transferred From Job Card ID",
+   "options": "Job Card"
+  },
+  {
+   "fieldname": "date_and_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Date"
+  },
+  {
+   "fieldname": "received_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-22 16:08:23.647692",
+ "modified_by": "Administrator",
+ "module": "Next BOM",
+ "name": "Received Qty",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

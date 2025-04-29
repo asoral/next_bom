@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-29 12:21:06.250000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "details_section",
+  "work_order",
+  "bom_no",
+  "column_break_pbmz",
+  "item_to_manufacture",
+  "item_name",
+  "transfer_details_section",
+  "fetch_job_cards",
+  "job_card_transfer_qty"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Work Order",
+   "options": "Work Order",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "work_order.bom_no",
+   "fieldname": "bom_no",
+   "fieldtype": "Link",
+   "label": "BOM No",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pbmz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "work_order.production_item",
+   "fieldname": "item_to_manufacture",
+   "fieldtype": "Link",
+   "label": "Item To Manufacture",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "work_order.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transfer_details_section",
+   "fieldtype": "Section Break",
+   "label": "Transfer Details"
+  },
+  {
+   "fieldname": "fetch_job_cards",
+   "fieldtype": "Button",
+   "label": "Fetch Job Cards"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "job_card_transfer_qty",
+   "fieldtype": "Table",
+   "label": "Job Card Transfer Qty",
+   "options": "Job Card Transfer Qty"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-04-29 12:21:06.250000",
+ "modified_by": "Administrator",
+ "module": "Next BOM",
+ "name": "Bulk Job Card Transfer",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

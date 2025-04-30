@@ -126,8 +126,13 @@ doctype_js = {"BOM" : "public/js/bom.js",
 doc_events = {
 	"BOM": {
 		"before_save": "next_bom.custom_bom.before_save",
-	}
-}
+	},
+    "Job Card":{
+        "validate":"next_bom.job_card.job_card_validation"
+        }
+
+    }
+
 
 # Scheduled Tasks
 # ---------------

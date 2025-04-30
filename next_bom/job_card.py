@@ -1,7 +1,8 @@
 
 import frappe
-from frappe.utils import now
+from frappe.utils import now ,get_datetime, now_datetime
 import json
+from datetime import timedelta
 
 @frappe.whitelist()
 def transfer_qty(doc, operation):
@@ -89,3 +90,59 @@ def child_table_append(data, doc):
             job_card.save(ignore_permissions=True)
 
     return True
+    from datetime import timedelta
+import frappe
+from frappe.utils import get_datetime, now_datetime
+
+def job_card_validation(self, method):
+    if not self.custom_received_qty_ or not self.time_logs:
+        return
+
+    first_entry = self.custom_received_qty_[0]
+    first_entry_time = get_datetime(first_entry.date_and_time) - timedelta(minutes=1)
+
+    for log in self.time_logs:
+        log_from_time = get_datetime(log.from_time)
+        log_to_time = get_datetime(log.to_time)
+
+        if first_entry_time > log_from_time:
+            frappe.throw(
+                f"First entry time {first_entry_time} should not be greater than time log's from_time {log_from_time}."
+            )
+
+       
+        if log_to_time and log_to_time > now_datetime():
+            frappe.throw(
+                f"Time log's to_time {log_to_time} cannot be in the future (current time: {now_datetime()})."
+            )
+
+    total_received_qty = 0
+    total_completed_qty = 0
+
+
+    latest_to_time = max(
+        [get_datetime(log.to_time).replace(microsecond=0) for log in self.time_logs if log.to_time],
+        default=None
+    )
+    if not latest_to_time:
+        return
+
+    latest_to_time += timedelta(minutes=1)
+
+    for entry in self.custom_received_qty_:
+        try:
+            entry_datetime = get_datetime(entry.date_and_time).replace(microsecond=0)
+        except Exception as e:
+            frappe.logger().warning(f"Invalid entry.date_and_time: {entry.date_and_time} - {e}")
+            continue
+
+        if entry_datetime <= latest_to_time:
+            total_received_qty += entry.received_qty
+        else:
+            print(f"Entry Excluded: {entry_datetime} > {latest_to_time}")
+
+    for log in self.time_logs:
+        total_completed_qty += log.completed_qty
+
+    if total_completed_qty > total_received_qty:
+        frappe.throw("Completed Quantity should not be greater than Received Quantity.")

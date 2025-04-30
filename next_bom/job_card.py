@@ -90,9 +90,7 @@ def child_table_append(data, doc):
             job_card.save(ignore_permissions=True)
 
     return True
-    from datetime import timedelta
-import frappe
-from frappe.utils import get_datetime, now_datetime
+
 
 def job_card_validation(self, method):
     if not self.custom_received_qty_ or not self.time_logs:

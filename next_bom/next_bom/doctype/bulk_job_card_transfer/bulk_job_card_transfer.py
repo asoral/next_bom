@@ -61,7 +61,8 @@ def bom_data(work_order, bom):
                     "job_card": jc.name,
                     "operation": jc.operation,
                     "qty_to_transfer": 0,
-                    "transfer_to_job_card": next_op_jc.name
+                    "transfer_to_job_card": next_op_jc.name,
+                    "workstation":jc.workstation
                 })
 
     

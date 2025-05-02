@@ -63,6 +63,7 @@ def child_table_append(data, doc):
         qty = i.get("qty")
         job_card_id = i.get("job_card")
         job_name = i.get("job_name")
+        date=i.get("date")
 
         if qty:
             total_qty_trans += qty
@@ -81,7 +82,7 @@ def child_table_append(data, doc):
 
             job_card.append("custom_received_qty_", {
                 "transferred_from_job_card_id": job_name,
-                "date_and_time": now(),
+                "date_and_time": date,
                 "received_qty": qty
             })
 
@@ -90,9 +91,7 @@ def child_table_append(data, doc):
             job_card.save(ignore_permissions=True)
 
     return True
-    from datetime import timedelta
-import frappe
-from frappe.utils import get_datetime, now_datetime
+
 
 def job_card_validation(self, method):
     if not self.custom_received_qty_ or not self.time_logs:

@@ -1,4 +1,5 @@
 frappe.ui.form.on("Job Card", {
+
     refresh: function(frm) {
         if (frm.doc.total_completed_qty > 0 && frm.doc.total_completed_qty > frm.doc.custom_transferred_qty) {
             frappe.call({
@@ -119,6 +120,53 @@ frappe.ui.form.on("Job Card", {
                     }
                 }
             });
+        }
+
+       if (frm.doc.work_order && frm.doc.bom_no && frm.doc.operation) {
+            frappe.call({
+                method: "next_bom.job_card.received_qty",
+                args: {
+                    bom_no: frm.doc.bom_no,
+                    operation: frm.doc.operation
+                },
+                callback: function (r) {
+                    if (r.message && r.message.is_first_operation) {
+                        frm.add_custom_button("Received Qty", () => {
+                            let d = new frappe.ui.Dialog({
+                                title: 'Enter Received Quantity',
+                                fields: [
+                                    {
+                                        label: 'Quantity',
+                                        fieldname: 'qty',
+                                        fieldtype: 'Float',
+                                        reqd: true
+                                    }
+                                ],
+                                primary_action_label: 'Submit',
+                                primary_action(values) {
+                                    let current_qty = frm.doc.custom_received_qty || 0;
+                                    let total_received_qty = current_qty + values.qty;
+
+                                    frm.set_value("custom_received_qty", total_received_qty);
+                                    frm.save();
+                                    d.hide();
+                                }
+                            });
+                            d.show();
+                        });
+                    }
+                }
+            });
+        }
+    },
+    
+    total_completed_qty: function(frm) {
+        if (
+            frm.doc.custom_received_qty != null &&
+            frm.doc.total_completed_qty != null &&
+            frm.doc.custom_received_qty < frm.doc.total_completed_qty
+        ) {
+            frappe.throw("Received Quantity cannot be less than Completed Quantity.");
         }
     }
 });

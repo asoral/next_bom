@@ -128,7 +128,8 @@ doc_events = {
 		"before_save": "next_bom.custom_bom.before_save",
 	},
     "Job Card":{
-        "validate":"next_bom.job_card.job_card_validation"
+        "validate":["next_bom.job_card.job_card_validation",
+            "next_bom.job_card.validate_bom_qty"]
         }
 
     }

@@ -145,3 +145,32 @@ def job_card_validation(self, method):
 
     if total_completed_qty > total_received_qty:
         frappe.throw("Completed Quantity should not be greater than Received Quantity.")
+
+
+
+
+ 
+@frappe.whitelist()
+def received_qty(bom_no, operation=None):
+    if not bom_no:
+        frappe.throw("Please provide BOM No")
+
+    bom = frappe.get_doc("BOM", bom_no)
+
+    if not bom.operations:
+        frappe.throw(f"No Operation child table data for BOM {bom_no}")
+
+    first_operation = sorted(bom.operations, key=lambda op: op.idx)[0].operation
+
+    
+    if operation == first_operation:
+        return {"is_first_operation": True, "operation": first_operation}
+    else:
+        return {"is_first_operation": False, "operation": first_operation}
+    
+def validate_bom_qty(self, method):
+    if self.custom_received_qty is not None and self.total_completed_qty is not None:
+        if self.custom_received_qty >= 0 and self.total_completed_qty >= 0:
+            if self.custom_received_qty < self.total_completed_qty:
+                frappe.throw("Received Quantity cannot be less than Completed Quantity.")
+

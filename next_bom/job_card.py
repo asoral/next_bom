@@ -140,8 +140,11 @@ def job_card_validation(self, method):
         else:
             print(f"Entry Excluded: {entry_datetime} > {latest_to_time}")
 
-    for log in self.time_logs:
-        total_completed_qty += log.completed_qty
+    if self.time_logs:
+        for log in self.time_logs:
+            if log.completed_qty is not None:
+                total_completed_qty += log.completed_qty
+
 
     if total_completed_qty > total_received_qty:
         frappe.throw("Completed Quantity should not be greater than Received Quantity.")

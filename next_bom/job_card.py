@@ -3,7 +3,6 @@ import frappe
 from frappe.utils import now ,get_datetime, now_datetime
 import json
 from datetime import timedelta
-
 @frappe.whitelist()
 def transfer_qty(doc, operation):
     data = []
@@ -13,21 +12,24 @@ def transfer_qty(doc, operation):
         work_order_id = frappe.get_value("Job Card", doc, "work_order")
         work_order = frappe.get_doc("Work Order", work_order_id)
 
-        if work_order and work_order.bom_no:
-            bom = frappe.get_doc("BOM", work_order.bom_no)
-            job_cards = frappe.get_all("Job Card", 
-                filters={"work_order": work_order.name},
-                fields=["name", "workstation", "operation"]
-            )
-
-            operations = [op.operation for op in bom.operations]
+        if work_order and work_order.operations:
+            # Get all operations from Work Order
+            operations = [op.operation for op in work_order.operations]
 
             if operation in operations:
                 op_index = operations.index(operation)
+
                 if op_index == len(operations) - 1:
                     is_last_operation = True
                 else:
                     next_operation = operations[op_index + 1]
+
+                    # Fetch job cards for this work order
+                    job_cards = frappe.get_all(
+                        "Job Card", 
+                        filters={"work_order": work_order.name},
+                        fields=["name", "workstation", "operation"]
+                    )
 
                     for jc in job_cards:
                         if jc.operation == next_operation:
@@ -42,6 +44,7 @@ def transfer_qty(doc, operation):
         "data": data,
         "is_last_operation": is_last_operation
     }
+
 
 @frappe.whitelist()
 def child_table_append(data, doc):

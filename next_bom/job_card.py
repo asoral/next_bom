@@ -101,8 +101,17 @@ def child_table_append(data, doc):
 
 
 def job_card_validation(self, method):
+    if self.for_quantity is not None and self.custom_received_qty is not None:
+        if self.for_quantity < self.custom_received_qty:
+            frappe.throw("Qty To Manufacture cannot be greater than Total Received Qty.")
+
+    if self.custom_transferred_qty is not None and self.total_completed_qty is not None:
+        if self.custom_transferred_qty > self.total_completed_qty:
+            frappe.throw("Transferred quantity cannot be greater than Total Completed Qty.")
+
     if not self.custom_received_qty_ or not self.time_logs:
         return
+    
 
     first_entry = self.custom_received_qty_[0]
     first_entry_time = get_datetime(first_entry.date_and_time) - timedelta(minutes=1)
@@ -151,13 +160,52 @@ def job_card_validation(self, method):
         for log in self.time_logs:
             if log.completed_qty is not None:
                 total_completed_qty += log.completed_qty
+import frappe
 
+def on_update(doc, method):
+    print("🔄 on_update triggered...")
 
-    if total_completed_qty > total_received_qty:
-        frappe.throw("Completed Quantity should not be greater than Received Quantity.")
+    if not doc.time_logs:
+        return
 
+    for log in doc.time_logs:
+        if not log.name:
+            frappe.msgprint(f"⏩ Skipping log (no name): {log.idx}")
+            continue  
 
+       
+        existing_qi_name = frappe.get_value("Quality Inspection", {
+            "reference_name": doc.name,
+            "child_row_reference": log.name
+        }, "name")
 
+        if not existing_qi_name:
+           
+            try:
+                quality_inspection = frappe.new_doc("Quality Inspection")
+                quality_inspection.reference_type = "Job Card"
+                quality_inspection.inspection_type = "In Process"
+                quality_inspection.reference_name = doc.name
+                quality_inspection.child_row_reference = log.name
+                quality_inspection.item_code = doc.production_item
+                quality_inspection.sample_size = 1
+                quality_inspection.custom_accepted_quantity = log.completed_qty or 0
+                quality_inspection.inspected_by = frappe.session.user
+
+                quality_inspection.save(ignore_permissions=True)
+                frappe.msgprint(f"✅ Created Quality Inspection for time log: {log.name}")
+            except Exception as e:
+                frappe.throw(f"❌ Error creating Quality Inspection for log {log.name}: {e}")
+        else:
+            # 🔄 Update existing Quality Inspection
+            try:
+                qi = frappe.get_doc("Quality Inspection", existing_qi_name)
+                qi.custom_accepted_quantity = log.completed_qty or 0
+                qi.inspected_by = frappe.session.user
+                qi.save(ignore_permissions=True)
+                frappe.msgprint(f"🔄 Updated Quality Inspection for time log: {log.name}")
+            except Exception as e:
+                frappe.throw(f"❌ Error updating Quality Inspection for log {log.name}: {e}")
 
  
 @frappe.whitelist()
@@ -179,6 +227,7 @@ def received_qty(bom_no, operation=None):
         return {"is_first_operation": False, "operation": first_operation}
     
 def validate_bom_qty(self, method):
+
     if self.custom_received_qty is not None and self.total_completed_qty is not None:
         try:
             custom_received_qty = float(self.custom_received_qty)
@@ -189,3 +238,4 @@ def validate_bom_qty(self, method):
                     frappe.throw("Received Quantity cannot be less than Completed Quantity.")
         except ValueError:
             frappe.throw("Received Quantity and Completed Quantity must be numbers.")
+

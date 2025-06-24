@@ -148,10 +148,15 @@ frappe.ui.form.on("Job Card", {
                                     let current_qty = frm.doc.custom_received_qty || 0;
                                     let total_received_qty = current_qty + values.qty;
 
+                                    if (frm.doc.for_quantity != null && frm.doc.for_quantity < total_received_qty) {
+                                        frappe.throw("Qty To Manufacture cannot be less than Total Received Qty.");
+                                    }
+
                                     frm.set_value("custom_received_qty", total_received_qty);
                                     frm.save();
                                     d.hide();
                                 }
+
                             });
                             d.show();
                         });
@@ -207,7 +212,7 @@ frappe.ui.form.on('Received Qty', {
             max_available_revert_qty = completed_qty_remaining;
         }
 
-        // Revert qty cannot exceed row.received_qty or calculated limit
+        
         let max_revert_qty = Math.min(row.received_qty, max_available_revert_qty);
 
         const dialog = new frappe.ui.Dialog({

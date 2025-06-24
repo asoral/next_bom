@@ -129,8 +129,11 @@ doc_events = {
 	},
     "Job Card":{
         "validate":["next_bom.job_card.job_card_validation",
-            "next_bom.job_card.validate_bom_qty"]
-        }
+            "next_bom.job_card.validate_bom_qty"],
+            
+        "on_update":"next_bom.job_card.on_update"
+        },
+        
 
     }
 

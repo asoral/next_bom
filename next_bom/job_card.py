@@ -46,9 +46,10 @@ def transfer_qty(doc, operation):
     }
 
 
+
+
 @frappe.whitelist()
 def child_table_append(data, doc):
-    
     try:
         data = json.loads(data)
     except Exception as e:
@@ -62,35 +63,38 @@ def child_table_append(data, doc):
     transfer_qty = transfer_qty or 0
     total_qty_trans = transfer_qty
 
+    # First pass: validate and calculate new total transferred qty
+    for i in data:
+        qty = i.get("qty")
+        if qty:
+            total_qty_trans += qty
+
+    if total_qty_trans > total_completed_qty:
+        frappe.throw(f"Total transferred quantity ({total_qty_trans}) cannot exceed completed quantity ({total_completed_qty})")
+
+    # Update parent Job Card after all validation passed
+    job_card_doc.custom_transferred_qty = total_qty_trans
+    job_card_doc.custom_balance_qty = total_completed_qty - total_qty_trans
+    job_card_doc.save(ignore_permissions=True)
+
+    # Second pass: update child tables
     for i in data:
         qty = i.get("qty")
         job_card_id = i.get("job_card")
         job_name = i.get("job_name")
-        date=i.get("date")
+        date = i.get("date")
 
-        if qty:
-            total_qty_trans += qty
-
-        if total_qty_trans > total_completed_qty:
-            frappe.throw(f"Total transferred quantity ({total_qty_trans}) cannot exceed completed quantity ({total_completed_qty})")
-
-       
-        job_card_doc.custom_transferred_qty = total_qty_trans
-        job_card_doc.custom_balance_qty = total_completed_qty - total_qty_trans
-        job_card_doc.save(ignore_permissions=True)
-
-       
         if qty and qty > 0 and job_card_id:
             job_card = frappe.get_doc("Job Card", job_card_id)
-
             job_card.append("custom_received_qty_", {
                 "transferred_from_job_card_id": job_name,
                 "date_and_time": date,
                 "received_qty": qty
             })
 
-            total_received_qty = sum(row.received_qty for row in job_card.custom_received_qty_)
-            job_card.custom_received_qty = total_received_qty
+            job_card.custom_received_qty = sum(
+                row.received_qty for row in job_card.custom_received_qty_
+            )
             job_card.save(ignore_permissions=True)
 
     return True
@@ -176,7 +180,12 @@ def received_qty(bom_no, operation=None):
     
 def validate_bom_qty(self, method):
     if self.custom_received_qty is not None and self.total_completed_qty is not None:
-        if self.custom_received_qty >= 0 and self.total_completed_qty >= 0:
-            if self.custom_received_qty < self.total_completed_qty:
-                frappe.throw("Received Quantity cannot be less than Completed Quantity.")
+        try:
+            custom_received_qty = float(self.custom_received_qty)
+            total_completed_qty = float(self.total_completed_qty)
 
+            if custom_received_qty >= 0 and total_completed_qty >= 0:
+                if custom_received_qty < total_completed_qty:
+                    frappe.throw("Received Quantity cannot be less than Completed Quantity.")
+        except ValueError:
+            frappe.throw("Received Quantity and Completed Quantity must be numbers.")

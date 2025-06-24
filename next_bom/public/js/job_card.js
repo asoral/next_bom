@@ -1,6 +1,7 @@
 frappe.ui.form.on("Job Card", {
 
     refresh: function(frm) {
+        
         if (frm.doc.total_completed_qty > 0 && frm.doc.total_completed_qty > frm.doc.custom_transferred_qty) {
             frappe.call({
                 method: "next_bom.job_card.transfer_qty",
@@ -122,7 +123,7 @@ frappe.ui.form.on("Job Card", {
             });
         }
 
-       if (frm.doc.work_order && frm.doc.bom_no && frm.doc.operation) {
+        if (frm.doc.work_order && frm.doc.bom_no && frm.doc.operation) {
             frappe.call({
                 method: "next_bom.job_card.received_qty",
                 args: {
@@ -158,6 +159,7 @@ frappe.ui.form.on("Job Card", {
                 }
             });
         }
+       
     },
     
     total_completed_qty: function(frm) {
@@ -168,5 +170,131 @@ frappe.ui.form.on("Job Card", {
         ) {
             frappe.throw("Received Quantity cannot be less than Completed Quantity.");
         }
+    }
+});
+
+
+frappe.ui.form.on('Received Qty', {
+    revert_qty: async function (frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        const last_row = frm.doc.custom_received_qty_[frm.doc.custom_received_qty_.length - 1];
+
+        if (row.name !== last_row.name) {
+            frappe.msgprint("Only the last row can be reverted.");
+            return;
+        }
+
+        let received_qty_total = frm.doc.custom_received_qty || 0;
+        let transferred_qty_total = frm.doc.custom_transferred_qty || 0;
+        let completed_qty = frm.doc.total_completed_qty || 0;
+
+
+        let max_available_revert_qty = received_qty_total - transferred_qty_total;
+        let completed_qty_remaining = received_qty_total - completed_qty;
+
+        if (max_available_revert_qty <= 0) {
+            frappe.msgprint("No available quantity to revert.");
+            return;
+        }
+
+        if (completed_qty_remaining <= 0) {
+            frappe.msgprint("No available quantity to revert. This is fully completed qty.");
+            return;
+        }
+
+    
+        if (max_available_revert_qty > completed_qty_remaining) {
+            max_available_revert_qty = completed_qty_remaining;
+        }
+
+        // Revert qty cannot exceed row.received_qty or calculated limit
+        let max_revert_qty = Math.min(row.received_qty, max_available_revert_qty);
+
+        const dialog = new frappe.ui.Dialog({
+            title: 'Revert Quantity',
+            fields: [
+                {
+                    label: 'Transferred From Job Card ID',
+                    fieldname: 'transferred_from_job_card_id',
+                    fieldtype: 'Link',
+                    options: 'Job Card',
+                    default: row.transferred_from_job_card_id || '',
+                    read_only: 1
+                },
+                {
+                    label: 'Date and Time',
+                    fieldname: 'date_and_time',
+                    fieldtype: 'Datetime',
+                    default: frappe.datetime.now_datetime(),
+                    read_only: 1
+                },
+                {
+                    label: 'Received Qty',
+                    fieldname: 'received_qty',
+                    fieldtype: 'Float',
+                    default: row.received_qty,
+                    read_only: 1
+                },
+                {
+                    label: 'Revert Qty',
+                    fieldname: 'revert_qty',
+                    fieldtype: 'Float',
+                    description: `Max: ${max_revert_qty}`,
+                    reqd: 1
+                }
+            ],
+            primary_action_label: 'Revert',
+            primary_action: function (values) {
+                if (!values.revert_qty || values.revert_qty <= 0 || values.revert_qty > max_revert_qty) {
+                    frappe.msgprint(`Revert Qty must be between 0 and ${max_revert_qty}`);
+                    return;
+                }
+
+                frappe.call({
+                    method: 'frappe.client.get',
+                    args: {
+                        doctype: 'Job Card',
+                        name: values.transferred_from_job_card_id
+                    },
+                    callback: function (res) {
+                        let source_job_card = res.message;
+                        let new_transferred_qty = (source_job_card.custom_transferred_qty || 0) - values.revert_qty;
+                        let new_balance_qty = (source_job_card.custom_balance_qty || 0) + values.revert_qty;
+
+                        frappe.call({
+                            method: 'frappe.client.set_value',
+                            args: {
+                                doctype: 'Job Card',
+                                name: values.transferred_from_job_card_id,
+                                fieldname: {
+                                    custom_transferred_qty: Math.max(0, new_transferred_qty),
+                                    custom_balance_qty: new_balance_qty
+                                }
+                            },
+                            callback: function () {
+                                // Update current job card
+                                frm.set_value('custom_received_qty', (frm.doc.custom_received_qty || 0) - values.revert_qty);
+
+                                // Update row
+                                row.received_qty = row.received_qty - values.revert_qty;
+
+                                // If qty is 0, remove the row
+                                if (row.received_qty <= 0) {
+                                    frm.get_field("custom_received_qty_").grid.grid_rows_by_docname[row.name].remove();
+                                }
+
+                                frm.refresh_field('custom_received_qty_');
+                                frm.save().then(() => {
+                                    frappe.msgprint(`Reverted ${values.revert_qty} Qty. Job Cards updated.`);
+                                    dialog.hide();
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        dialog.show();
     }
 });

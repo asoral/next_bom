@@ -101,6 +101,10 @@ def child_table_append(data, doc):
 
 
 def job_card_validation(self, method):
+    if self.total_completed_qty and self.custom_transferred_qty:
+        balance_qty = self.total_completed_qty - self.custom_transferred_qty
+        self.custom_balance_qty=balance_qty
+
     if self.for_quantity is not None and self.custom_received_qty is not None:
         if self.for_quantity < self.custom_received_qty:
             frappe.throw("Qty To Manufacture cannot be greater than Total Received Qty.")

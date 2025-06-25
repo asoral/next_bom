@@ -106,7 +106,7 @@ def job_card_validation(self, method):
         self.custom_balance_qty=balance_qty
 
     if self.for_quantity is not None and self.custom_received_qty is not None:
-        if self.for_quantity < self.custom_received_qty:
+        if self.for_quantity > self.custom_received_qty:
             frappe.throw("Qty To Manufacture cannot be greater than Total Received Qty.")
 
     if self.custom_transferred_qty is not None and self.total_completed_qty is not None:

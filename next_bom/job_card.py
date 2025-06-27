@@ -105,17 +105,17 @@ def job_card_validation(self, method):
         balance_qty = self.total_completed_qty - self.custom_transferred_qty
         self.custom_balance_qty=balance_qty
 
-    if self.for_quantity is not None and self.custom_received_qty is not None:
-        if self.for_quantity > self.custom_received_qty:
-            frappe.throw("Qty To Manufacture cannot be greater than Total Received Qty.")
-
-    if self.custom_transferred_qty is not None and self.total_completed_qty is not None:
-        if self.custom_transferred_qty > self.total_completed_qty:
-            frappe.throw("Transferred quantity cannot be greater than Total Completed Qty.")
-
     if not self.custom_received_qty_ or not self.time_logs:
         return
     
+    if self.total_completed_qty:
+        balance_qty=self.total_completed_qty - self.custom_transferred_qty
+        self.custom_balance_qty = balance_qty
+    
+    if self.for_quantity and self.custom_received_qty:
+        if self.for_quantity < self.custom_received_qty:
+            frappe.throw("Qty to Manufacture cannot be less than Total Received Qty.")
+
 
     first_entry = self.custom_received_qty_[0]
     first_entry_time = get_datetime(first_entry.date_and_time) - timedelta(minutes=1)

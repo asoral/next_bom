@@ -197,7 +197,6 @@ frappe.ui.form.on('Received Qty', {
         let transferred_qty_total = frm.doc.custom_transferred_qty || 0;
         let completed_qty = frm.doc.total_completed_qty || 0;
 
-
         let max_available_revert_qty = received_qty_total - transferred_qty_total;
         let completed_qty_remaining = received_qty_total - completed_qty;
 
@@ -211,12 +210,10 @@ frappe.ui.form.on('Received Qty', {
             return;
         }
 
-    
         if (max_available_revert_qty > completed_qty_remaining) {
             max_available_revert_qty = completed_qty_remaining;
         }
 
-        
         let max_revert_qty = Math.min(row.received_qty, max_available_revert_qty);
 
         const dialog = new frappe.ui.Dialog({
@@ -270,35 +267,54 @@ frappe.ui.form.on('Received Qty', {
                         let new_transferred_qty = (source_job_card.custom_transferred_qty || 0) - values.revert_qty;
                         let new_balance_qty = (source_job_card.custom_balance_qty || 0) + values.revert_qty;
 
-                        frappe.call({
-                            method: 'frappe.client.set_value',
-                            args: {
-                                doctype: 'Job Card',
-                                name: values.transferred_from_job_card_id,
-                                fieldname: {
-                                    custom_transferred_qty: Math.max(0, new_transferred_qty),
-                                    custom_balance_qty: new_balance_qty
+                        // Get last child row in transfer child table
+                        let last_transfer_row = source_job_card.custom_transfer_qty?.slice(-1)[0];
+
+                        if (last_transfer_row) {
+                            // 1. Update last transfer child row's qty
+                            frappe.call({
+                                method: "frappe.client.set_value",
+                                args: {
+                                    doctype: "Transfer Qty", // adjust this to your actual child doctype name
+                                    name: last_transfer_row.name,
+                                    fieldname: {
+                                        qty: (last_transfer_row.qty || 0) - values.revert_qty
+                                    }
+                                },
+                                callback: function () {
+                                    // 2. Update main fields in source Job Card
+                                    frappe.call({
+                                        method: 'frappe.client.set_value',
+                                        args: {
+                                            doctype: 'Job Card',
+                                            name: values.transferred_from_job_card_id,
+                                            fieldname: {
+                                                custom_transferred_qty: Math.max(0, new_transferred_qty),
+                                                custom_balance_qty: new_balance_qty
+                                            }
+                                        },
+                                        callback: function () {
+                                            // 3. Update current Job Card (received side)
+                                            frm.set_value('custom_received_qty', (frm.doc.custom_received_qty || 0) - values.revert_qty);
+
+                                            row.received_qty = row.received_qty - values.revert_qty;
+
+                                            if (row.received_qty <= 0) {
+                                                frm.get_field("custom_received_qty_").grid.grid_rows_by_docname[row.name].remove();
+                                            }
+
+                                            frm.refresh_field('custom_received_qty_');
+                                            frm.save().then(() => {
+                                                frappe.msgprint(`Reverted ${values.revert_qty} Qty. Job Cards updated.`);
+                                                dialog.hide();
+                                            });
+                                        }
+                                    });
                                 }
-                            },
-                            callback: function () {
-                                
-                                frm.set_value('custom_received_qty', (frm.doc.custom_received_qty || 0) - values.revert_qty);
-
-                                
-                                row.received_qty = row.received_qty - values.revert_qty;
-
-                                
-                                if (row.received_qty <= 0) {
-                                    frm.get_field("custom_received_qty_").grid.grid_rows_by_docname[row.name].remove();
-                                }
-
-                                frm.refresh_field('custom_received_qty_');
-                                frm.save().then(() => {
-                                    frappe.msgprint(`Reverted ${values.revert_qty} Qty. Job Cards updated.`);
-                                    dialog.hide();
-                                });
-                            }
-                        });
+                            });
+                        } else {
+                            frappe.msgprint("No transfer row found to update in source Job Card.");
+                        }
                     }
                 });
             }
@@ -307,6 +323,7 @@ frappe.ui.form.on('Received Qty', {
         dialog.show();
     }
 });
+
 
 
 frappe.ui.form.on('Job Card Time Log', {

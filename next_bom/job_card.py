@@ -13,7 +13,7 @@ def transfer_qty(doc, operation):
         work_order = frappe.get_doc("Work Order", work_order_id)
 
         if work_order and work_order.operations:
-            # Get all operations from Work Order
+           
             operations = [op.operation for op in work_order.operations]
 
             if operation in operations:
@@ -24,7 +24,7 @@ def transfer_qty(doc, operation):
                 else:
                     next_operation = operations[op_index + 1]
 
-                    # Fetch job cards for this work order
+                    
                     job_cards = frappe.get_all(
                         "Job Card", 
                         filters={"work_order": work_order.name},
@@ -46,7 +46,8 @@ def transfer_qty(doc, operation):
     }
 
 
-
+import frappe
+import json
 
 @frappe.whitelist()
 def child_table_append(data, doc):
@@ -55,49 +56,64 @@ def child_table_append(data, doc):
     except Exception as e:
         frappe.throw(f"Invalid JSON data: {e}")
 
+   
     job_card_doc = frappe.get_doc("Job Card", doc)
-    transfer_qty, balance_qty, total_completed_qty = frappe.db.get_value(
-        "Job Card", doc, ["custom_transferred_qty", "custom_balance_qty", "total_completed_qty"]
+
+    
+    transfer_qty, total_completed_qty = frappe.db.get_value(
+        "Job Card", doc, ["custom_transferred_qty", "total_completed_qty"]
     )
 
     transfer_qty = transfer_qty or 0
+    total_completed_qty = total_completed_qty or 0
     total_qty_trans = transfer_qty
 
-    # First pass: validate and calculate new total transferred qty
-    for i in data:
-        qty = i.get("qty")
-        if qty:
-            total_qty_trans += qty
+    
+    for row in data:
+        qty = row.get("qty") or 0
+        total_qty_trans += qty
 
     if total_qty_trans > total_completed_qty:
         frappe.throw(f"Total transferred quantity ({total_qty_trans}) cannot exceed completed quantity ({total_completed_qty})")
 
-    # Update parent Job Card after all validation passed
+
     job_card_doc.custom_transferred_qty = total_qty_trans
     job_card_doc.custom_balance_qty = total_completed_qty - total_qty_trans
-    job_card_doc.save(ignore_permissions=True)
 
-    # Second pass: update child tables
-    for i in data:
-        qty = i.get("qty")
-        job_card_id = i.get("job_card")
-        job_name = i.get("job_name")
-        date = i.get("date")
+    
+    for row in data:
+        qty = row.get("qty")
+        job_card_id = row.get("job_card")
+        job_name = row.get("job_name")
+        date = row.get("date")
 
         if qty and qty > 0 and job_card_id:
-            job_card = frappe.get_doc("Job Card", job_card_id)
-            job_card.append("custom_received_qty_", {
+           
+            receiver_job_card = frappe.get_doc("Job Card", job_card_id)
+            receiver_job_card.append("custom_received_qty_", {
                 "transferred_from_job_card_id": job_name,
                 "date_and_time": date,
                 "received_qty": qty
             })
 
-            job_card.custom_received_qty = sum(
-                row.received_qty for row in job_card.custom_received_qty_
+           
+            receiver_job_card.custom_received_qty = sum(
+                child.received_qty for child in receiver_job_card.custom_received_qty_
             )
-            job_card.save(ignore_permissions=True)
+            receiver_job_card.save(ignore_permissions=True)
+
+            
+            job_card_doc.append("custom_transfer_qty", {
+                "job_card_id": receiver_job_card.name,
+                "date": date,
+                "qty": qty
+            })
+
+   
+    job_card_doc.save(ignore_permissions=True)
 
     return True
+
 
 
 def job_card_validation(self, method):

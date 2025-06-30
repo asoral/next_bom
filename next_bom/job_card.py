@@ -101,6 +101,7 @@ def child_table_append(data, doc):
 
 
 def job_card_validation(self, method):
+    
     if self.total_completed_qty and self.custom_transferred_qty:
         balance_qty = self.total_completed_qty - self.custom_transferred_qty
         self.custom_balance_qty=balance_qty
@@ -167,7 +168,7 @@ def job_card_validation(self, method):
 import frappe
 
 def on_update(doc, method):
-    print("🔄 on_update triggered...")
+    print("🔄  on_update triggered...")
 
     if not doc.time_logs:
         return
@@ -231,7 +232,7 @@ def received_qty(bom_no, operation=None):
         return {"is_first_operation": False, "operation": first_operation}
     
 def validate_bom_qty(self, method):
-
+   
     if self.custom_received_qty is not None and self.total_completed_qty is not None:
         try:
             custom_received_qty = float(self.custom_received_qty)

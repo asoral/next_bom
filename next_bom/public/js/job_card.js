@@ -1,5 +1,7 @@
 frappe.ui.form.on("Job Card", {
 
+   
+
     refresh: function(frm) {
         
         if (frm.doc.total_completed_qty > 0 && frm.doc.total_completed_qty > frm.doc.custom_transferred_qty) {
@@ -147,12 +149,14 @@ frappe.ui.form.on("Job Card", {
                                 primary_action(values) {
                                     let current_qty = frm.doc.custom_received_qty || 0;
                                     let total_received_qty = current_qty + values.qty;
+                                    let balance_qty = frm.doc.total_completed_qty - frm.doc.custom_transferred_qty;
 
                                     if (frm.doc.for_quantity != null && frm.doc.for_quantity < total_received_qty) {
                                         frappe.throw("Qty To Manufacture cannot be less than Total Received Qty.");
                                     }
 
                                     frm.set_value("custom_received_qty", total_received_qty);
+                                    frm.set_value("custom_balance_qty",balance_qty);
                                     frm.save();
                                     d.hide();
                                 }
@@ -277,13 +281,13 @@ frappe.ui.form.on('Received Qty', {
                                 }
                             },
                             callback: function () {
-                                // Update current job card
+                                
                                 frm.set_value('custom_received_qty', (frm.doc.custom_received_qty || 0) - values.revert_qty);
 
-                                // Update row
+                                
                                 row.received_qty = row.received_qty - values.revert_qty;
 
-                                // If qty is 0, remove the row
+                                
                                 if (row.received_qty <= 0) {
                                     frm.get_field("custom_received_qty_").grid.grid_rows_by_docname[row.name].remove();
                                 }
@@ -301,5 +305,27 @@ frappe.ui.form.on('Received Qty', {
         });
 
         dialog.show();
+    }
+});
+
+
+frappe.ui.form.on('Job Card Time Log', {
+    completed_qty: function(frm, cdt, cdn) {
+        let total_completed_qty = 0;
+
+    
+        (frm.doc.time_logs || []).forEach(row => {
+            total_completed_qty += row.completed_qty || 0;
+        });
+
+        
+        if (total_completed_qty > frm.doc.custom_received_qty) {
+            let row = locals[cdt][cdn];
+
+         
+            frappe.model.set_value(cdt, cdn, 'completed_qty', 0);
+
+            frappe.throw(__('Please receive the quantity first. Completed quantity cannot be more than received quantity.'));
+        }
     }
 });

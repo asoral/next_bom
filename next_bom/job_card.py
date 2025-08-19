@@ -176,11 +176,20 @@ def job_card_validation(self, method):
             total_received_qty += entry.received_qty
         else:
             print(f"Entry Excluded: {entry_datetime} > {latest_to_time}")
+    if self.custom_received_qty_ and self.time_logs:
+        last_received = self.custom_received_qty_[-1]
+       
+        last_time_log = self.time_logs[-1]
+        
+        if last_received.date_and_time > last_time_log.from_time:
+            frappe.throw("Received table date and time cannot be less than Time Log date and time.")
 
     if self.time_logs:
         for log in self.time_logs:
             if log.completed_qty is not None:
                 total_completed_qty += log.completed_qty
+
+    
 import frappe
 
 def on_update(doc, method):
